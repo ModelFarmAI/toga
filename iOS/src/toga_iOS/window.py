@@ -68,6 +68,7 @@ class Window:
         self.navigation_controller = (
             UINavigationController.alloc().initWithRootViewController(self.controller)
         )
+        self.navigation_controller.navigationBarHidden = True
         self.native.rootViewController = self.navigation_controller
 
         self.set_title(title)

@@ -48,6 +48,8 @@ class WebView(Widget):
         self.native.navigationDelegate = self.native
         self.native.uIDelegate = self.native
 
+        self.native.allowsLinkPreview = False
+
         self.loaded_future = None
 
         # Add the layout constraints
