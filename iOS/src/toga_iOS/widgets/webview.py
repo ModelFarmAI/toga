@@ -3,7 +3,7 @@ from rubicon.objc.runtime import objc_id
 from travertino.size import at_least
 
 from toga.widgets.webview import JavaScriptResult
-from toga_iOS.libs import NSURL, NSURLRequest, WKWebView
+from toga_iOS.libs import NSURL, NSURLRequest, WKWebView, UIScreen, WKWebViewConfiguration
 from toga_iOS.widgets.base import Widget
 
 
@@ -39,12 +39,16 @@ class TogaWebView(WKWebView):
 
 class WebView(Widget):
     def create(self):
-        self.native = TogaWebView.alloc().init()
+        conf = WKWebViewConfiguration.alloc().init()
+        conf.allowsInlineMediaPlayback = True
+        self.native = TogaWebView.alloc().initWithFrame(UIScreen.mainScreen.bounds, configuration=conf)
         self.native.interface = self.interface
         self.native.impl = self
 
         self.native.navigationDelegate = self.native
         self.native.uIDelegate = self.native
+
+        self.native.allowsLinkPreview = False
 
         self.loaded_future = None
 
