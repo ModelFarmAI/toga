@@ -34,8 +34,8 @@ class PythonAppDelegate(UIResponder):
     def applicationWillEnterForeground_(self, application) -> None:
         print("App about to enter foreground.")
         App.app.interface.cleanup(App.app.interface)
-        App.app.interface.startup()
-
+        App.app.interface.startup_server()
+        
     @objc_method
     def application_didFinishLaunchingWithOptions_(
         self, application, launchOptions
