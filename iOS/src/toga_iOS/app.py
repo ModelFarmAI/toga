@@ -62,6 +62,31 @@ class PythonAppDelegate(UIResponder):
         App.app.interface.main_window.content._impl.viewport.kb_height = 0.0
 
         return True
+    
+    @objc_method
+    def application_viewControllerWithRestorationIdentifierPath_coder_(self, application, identifierComponents, coder) -> None:
+        print("inside application_viewControllerWithRestorationIdentifierPath_coder_")
+        print("application", application)
+        print("identifierComponents", identifierComponents)
+        print("coder", coder)
+
+    @objc_method
+    def application_shouldSaveSecureApplicationState_(self, application, coder) -> bool:
+        print("inside application_shouldSaveSecureApplicationState_")
+        print("application", application)
+        print("coder", coder)
+
+        return True
+
+
+    @objc_method
+    def application_shouldRestoreSecureApplicationState_(self, application, coder) -> bool:
+        print("inside application_shouldRestoreSecureApplicationState_")
+        print("application", application)
+        print("coder", coder)
+
+        return True
+
 
     @objc_method
     def applicationWillTerminate_(self, application) -> None:
