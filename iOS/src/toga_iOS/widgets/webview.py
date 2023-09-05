@@ -35,6 +35,11 @@ class TogaWebView(WKWebView):
         if self.impl.loaded_future:
             self.impl.loaded_future.set_result(None)
             self.impl.loaded_future = None
+    
+    @objc_method
+    def webView_didFailProvisionalNavigation_withError_(self, webview, navigation, error) -> None:
+        print("Inside didFailProvisionalNavigation")
+        self.impl.web_view_error_flag = True
 
 
 class WebView(Widget):
@@ -51,6 +56,8 @@ class WebView(Widget):
         self.native.allowsLinkPreview = False
 
         self.loaded_future = None
+
+        self.web_view_error_flag = False
 
         # Add the layout constraints
         self.add_constraints()

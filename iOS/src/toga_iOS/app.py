@@ -29,11 +29,13 @@ class PythonAppDelegate(UIResponder):
     @objc_method
     def applicationDidEnterBackground_(self, application) -> None:
         print("App entered background.")
+        App.app.interface.cleanup(App.app.interface)
 
     @objc_method
     def applicationWillEnterForeground_(self, application) -> None:
         print("App about to enter foreground.")
-
+        App.app.interface.startup_server()
+        
     @objc_method
     def application_didFinishLaunchingWithOptions_(
         self, application, launchOptions
