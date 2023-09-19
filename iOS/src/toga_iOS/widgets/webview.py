@@ -52,7 +52,10 @@ class TogaWebView(WKWebView):
         self, webview, origin, frame, captureType: NSInteger, decisionHandler
     ) -> None:
         obj_decisionHandler = ObjCBlock(decisionHandler, c_void_p, NSInteger)
-        obj_decisionHandler(1)
+        if origin.host == "127.0.0.1":
+            obj_decisionHandler(1)
+        else:
+            obj_decisionHandler(0)
 
 
 class WebView(Widget):
