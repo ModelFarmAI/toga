@@ -49,7 +49,7 @@ class WebView(Widget):
         self.native.impl = self
 
         self.native.navigationDelegate = self.native
-        self.native.uIDelegate = self.native
+        self.native.UIDelegate = self.native
 
         self.loaded_future = None
 

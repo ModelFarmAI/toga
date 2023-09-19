@@ -1,9 +1,15 @@
-from rubicon.objc import objc_method, objc_property, py_from_ns
-from rubicon.objc.runtime import objc_id
+from rubicon.objc import NSInteger, ObjCBlock, objc_method, objc_property, py_from_ns
+from rubicon.objc.runtime import c_void_p, objc_id
 from travertino.size import at_least
 
 from toga.widgets.webview import JavaScriptResult
-from toga_iOS.libs import NSURL, NSURLRequest, WKWebView, UIScreen, WKWebViewConfiguration
+from toga_iOS.libs import (
+    NSURL,
+    NSURLRequest,
+    UIScreen,
+    WKWebView,
+    WKWebViewConfiguration,
+)
 from toga_iOS.widgets.base import Widget
 
 
@@ -35,11 +41,18 @@ class TogaWebView(WKWebView):
         if self.impl.loaded_future:
             self.impl.loaded_future.set_result(None)
             self.impl.loaded_future = None
-    
+
     @objc_method
     def webView_didFailProvisionalNavigation_withError_(self, webview, navigation, error) -> None:
         print("Inside didFailProvisionalNavigation")
         self.impl.web_view_error_flag = True
+
+    @objc_method
+    def webView_requestMediaCapturePermissionForOrigin_initiatedByFrame_type_decisionHandler_(
+        self, webview, origin, frame, captureType: NSInteger, decisionHandler
+    ) -> None:
+        obj_decisionHandler = ObjCBlock(decisionHandler, c_void_p, NSInteger)
+        obj_decisionHandler(1)
 
 
 class WebView(Widget):
@@ -51,7 +64,7 @@ class WebView(Widget):
         self.native.impl = self
 
         self.native.navigationDelegate = self.native
-        self.native.uIDelegate = self.native
+        self.native.UIDelegate = self.native
 
         self.native.allowsLinkPreview = False
 
