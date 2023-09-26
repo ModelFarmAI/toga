@@ -71,6 +71,7 @@ class WebView(Widget):
         self.native.UIDelegate = self.native
 
         self.native.allowsLinkPreview = False
+        self.native.scrollView.setContentInsetAdjustmentBehavior(2);
 
         self.loaded_future = None
 
