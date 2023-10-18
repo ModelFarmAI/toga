@@ -38,11 +38,17 @@ def js_completion_handler(future, on_result=None):
 
 def parse_color_rule(color_rule_str):
     color_matches = re.match(r"rgb\((\d+),\s*(\d+),\s*(\d+)\)",color_rule_str)
-    if color_matches is None:
-        color_matches = re.match(r"rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)",color_rule_str)
-        color = (int(color_matches[1]),int(color_matches[2]),int(color_matches[3]),int(color_matches[4]))
-    else:
+    if color_matches:
         color = (int(color_matches[1]),int(color_matches[2]),int(color_matches[3]),255)
+    else:
+        color_matches = re.match(r"rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)",color_rule_str)
+        if color_matches:
+            color = (int(color_matches[1]),int(color_matches[2]),int(color_matches[3]),int(color_matches[4]))
+        else:
+            color = (182, 219, 245, 255)
+    #unset backgrounds are (0, 0, 0, 0)
+    if color == (0, 0, 0, 0):
+        color = (182, 219, 245, 255)
     return color
     
 
@@ -53,13 +59,13 @@ class TogaWebView(WKWebView):
     @objc_method
     def userContentController_didReceiveScriptMessage_(self, userContentController, message) -> None:
         colors = json.loads(str(message.body))
+        print(colors)
         top_colors = parse_color_rule(colors["top_background"])
         topColor = UIColor.colorWithRed(top_colors[0]/255.0, green=top_colors[1]/255.0, blue=top_colors[2]/255.0, alpha=top_colors[3]/255.0)
         self.impl.topBackgroundView.backgroundColor = topColor
         self.superview().insertSubview(self.impl.topBackgroundView, belowSubview=self)
         
         bottom_colors = parse_color_rule(colors["bottom_background"])
-        print(bottom_colors)
         bottomColor = UIColor.colorWithRed(bottom_colors[0]/255.0, green=bottom_colors[1]/255.0, blue=bottom_colors[2]/255.0, alpha=bottom_colors[3]/255.0)
         self.impl.bottomBackgroundView.backgroundColor = bottomColor
         self.superview().insertSubview(self.impl.bottomBackgroundView, belowSubview=self)
@@ -74,7 +80,6 @@ class TogaWebView(WKWebView):
 
     @objc_method
     def webView_didFailProvisionalNavigation_withError_(self, webview, navigation, error) -> None:
-        print("Inside didFailProvisionalNavigation")
         self.impl.web_view_error_flag = True
 
     @objc_method
@@ -105,12 +110,11 @@ class WebView(Widget):
         self.native.scrollView.backgroundColor = UIColor.clearColor
         self.native.configuration.userContentController.addScriptMessageHandler(self.native, name="finished_loading")
         
-        topRect = CGRect((0, 0),
-        (UIScreen.mainScreen.bounds.size.width, 0.5*UIScreen.mainScreen.bounds.size.height))
+        screenWidth = min(UIScreen.mainScreen.bounds.size.height,UIScreen.mainScreen.bounds.size.width)
+        screenHeight = max(UIScreen.mainScreen.bounds.size.height,UIScreen.mainScreen.bounds.size.width)
+        topRect = CGRect((0, 0), (screenHeight, 0.69*screenWidth))
         self.topBackgroundView = UIView.alloc().initWithFrame(topRect)
-        
-        bottomRect = CGRect((0, 0.5*UIScreen.mainScreen.bounds.size.height),
-        (UIScreen.mainScreen.bounds.size.width, 0.5*UIScreen.mainScreen.bounds.size.height))
+        bottomRect = CGRect((0, 0.69*screenWidth), (screenHeight, screenHeight-0.69*screenWidth))
         self.bottomBackgroundView = UIView.alloc().initWithFrame(bottomRect)
 
         self.loaded_future = None
