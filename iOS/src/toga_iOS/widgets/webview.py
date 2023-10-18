@@ -36,7 +36,7 @@ def js_completion_handler(future, on_result=None):
     return _completion_handler
 
 
-def parse_color_rule(color_rule_str):
+def parse_color_rule(color_rule_str, default_color):
     color_matches = re.match(r"rgb\((\d+),\s*(\d+),\s*(\d+)\)",color_rule_str)
     if color_matches:
         color = (int(color_matches[1]),int(color_matches[2]),int(color_matches[3]),255)
@@ -45,10 +45,10 @@ def parse_color_rule(color_rule_str):
         if color_matches:
             color = (int(color_matches[1]),int(color_matches[2]),int(color_matches[3]),int(color_matches[4]))
         else:
-            color = (182, 219, 245, 255)
+            color = default_color
     #unset backgrounds are (0, 0, 0, 0)
     if color == (0, 0, 0, 0):
-        color = (182, 219, 245, 255)
+        color = default_color
     return color
     
 
@@ -59,13 +59,12 @@ class TogaWebView(WKWebView):
     @objc_method
     def userContentController_didReceiveScriptMessage_(self, userContentController, message) -> None:
         colors = json.loads(str(message.body))
-        print(colors)
-        top_colors = parse_color_rule(colors["top_background"])
+        top_colors = parse_color_rule(colors["top_background"], self.interface.style)
         topColor = UIColor.colorWithRed(top_colors[0]/255.0, green=top_colors[1]/255.0, blue=top_colors[2]/255.0, alpha=top_colors[3]/255.0)
         self.impl.topBackgroundView.backgroundColor = topColor
         self.superview().insertSubview(self.impl.topBackgroundView, belowSubview=self)
         
-        bottom_colors = parse_color_rule(colors["bottom_background"])
+        bottom_colors = parse_color_rule(colors["bottom_background"], self.interface.style)
         bottomColor = UIColor.colorWithRed(bottom_colors[0]/255.0, green=bottom_colors[1]/255.0, blue=bottom_colors[2]/255.0, alpha=bottom_colors[3]/255.0)
         self.impl.bottomBackgroundView.backgroundColor = bottomColor
         self.superview().insertSubview(self.impl.bottomBackgroundView, belowSubview=self)
