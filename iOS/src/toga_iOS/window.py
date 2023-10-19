@@ -24,15 +24,8 @@ class Window:
         # RootContainer provides a titlebar for the window.
         self.container = RootContainer(on_refresh=self.content_refreshed)
 
-        self.navigation_controller = (
-            UINavigationController.alloc().initWithRootViewController(self.controller)
-        )
-        self.navigation_controller.navigationBarHidden = True
-        self.native.rootViewController = self.navigation_controller
-
         # Set the size of the content to the size of the window
         self.container.native.frame = self.native.bounds
-
 
         # Set the window's root controller to be the container's controller
         self.native.rootViewController = self.container.controller

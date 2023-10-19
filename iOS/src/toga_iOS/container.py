@@ -112,6 +112,8 @@ class RootContainer(Container):
             self.content_controller
         )
 
+        self.controller.navigationBarHidden = True
+
         # Set the controller's view to be the root content widget
         self.content_controller.view = self.native
 
@@ -121,6 +123,8 @@ class RootContainer(Container):
 
     @property
     def top_offset(self):
+        return 0
+        ## to remove all the safe area on the top
         return (
             UIApplication.sharedApplication.statusBarFrame.size.height
             + self.controller.navigationBar.frame.size.height
