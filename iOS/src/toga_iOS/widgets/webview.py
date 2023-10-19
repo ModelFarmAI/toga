@@ -101,7 +101,11 @@ class WebView(Widget):
         self.native.interface = self.interface
         self.native.impl = self
 
+        # Enable the content inspector. This was added in iOS 16.4.
+        # It is a no-op on earlier versions.
+        self.native.inspectable = True
         self.native.navigationDelegate = self.native
+
         self.native.UIDelegate = self.native
         
         self.native.allowsLinkPreview = False
@@ -115,6 +119,7 @@ class WebView(Widget):
         self.topBackgroundView = UIView.alloc().initWithFrame(topRect)
         bottomRect = CGRect((0, 0.69*screenWidth), (screenHeight, screenHeight-0.69*screenWidth))
         self.bottomBackgroundView = UIView.alloc().initWithFrame(bottomRect)
+
 
         self.loaded_future = None
 

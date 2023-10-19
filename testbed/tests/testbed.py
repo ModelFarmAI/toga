@@ -2,6 +2,7 @@ import errno
 import os
 import sys
 import tempfile
+import time
 import traceback
 from functools import partial
 from pathlib import Path
@@ -15,7 +16,12 @@ from testbed.app import main
 
 def run_tests(app, cov, args, report_coverage, run_slow):
     try:
-        # Control the run speed of the
+        # Wait for the app's main window to be visible.
+        print("Waiting for app to be ready for testing... ", end="", flush=True)
+        while app.main_window is None or not app.main_window.visible:
+            time.sleep(0.05)
+        print("ready.")
+        # Control the run speed of the test app.
         app.run_slow = run_slow
 
         project_path = Path(__file__).parent.parent
@@ -75,18 +81,13 @@ def run_tests(app, cov, args, report_coverage, run_slow):
         traceback.print_exc()
         app.returncode = 1
     finally:
+        print(f">>>>>>>>>> EXIT {app.returncode} <<<<<<<<<<")
+        # Add a short pause to make sure any log tailing gets a chance to flush
+        time.sleep(0.5)
         app.add_background_task(lambda app, **kwargs: app.exit())
 
 
 if __name__ == "__main__":
-    # Prevent the log being cluttered with "avc: denied" messages
-    # (https://github.com/beeware/toga/issues/1962).
-    def get_terminal_size(*args, **kwargs):
-        error = errno.ENOTTY
-        raise OSError(error, os.strerror(error))
-
-    os.get_terminal_size = get_terminal_size
-
     # Determine the toga backend. This replicates the behavior in toga/platform.py;
     # we can't use that module directly because we need to capture all the import
     # side effects as part of the coverage data.
@@ -103,6 +104,15 @@ if __name__ == "__main__":
                 "emscripten": "toga_web",
                 "win32": "toga_winforms",
             }.get(sys.platform)
+
+    if toga_backend == "toga_android":
+        # Prevent the log being cluttered with "avc: denied" messages
+        # (https://github.com/beeware/toga/issues/1962).
+        def get_terminal_size(*args, **kwargs):
+            error = errno.ENOTTY
+            raise OSError(error, os.strerror(error))
+
+        os.get_terminal_size = get_terminal_size
 
     # Start coverage tracking.
     # This needs to happen in the main thread, before the app has been created
@@ -128,13 +138,18 @@ if __name__ == "__main__":
     except ValueError:
         run_slow = False
 
-    # If there are no other specified arguments, default to running the whole suite.
-    # Only show coverage if we're running the full suite.
+    # If `--coverage` is in the arguments, display a coverage report
+    try:
+        args.remove("--coverage")
+        report_coverage = True
+    except ValueError:
+        report_coverage = False
+
+    # If there are no other specified arguments, default to running the whole suite,
+    # and reporting coverage.
     if len(args) == 0:
         args = ["tests"]
         report_coverage = True
-    else:
-        report_coverage = False
 
     thread = Thread(
         target=partial(
@@ -146,14 +161,7 @@ if __name__ == "__main__":
             report_coverage=report_coverage,
         )
     )
-    app.add_background_task(lambda app, *kwargs: thread.start())
-
-    # Add an on_exit handler that will terminate the test suite.
-    def exit_suite(app, **kwargs):
-        print(f">>>>>>>>>> EXIT {app.returncode} <<<<<<<<<<")
-        return True
-
-    app.on_exit = exit_suite
+    thread.start()
 
     # Start the test app.
     app.main_loop()

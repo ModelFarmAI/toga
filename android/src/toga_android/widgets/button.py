@@ -1,11 +1,13 @@
+from java import dynamic_proxy
 from travertino.size import at_least
 
-from ..libs.android.view import OnClickListener, View__MeasureSpec
-from ..libs.android.widget import Button as A_Button
+from android.view import View
+from android.widget import Button as A_Button
+
 from .label import TextViewWidget
 
 
-class TogaOnClickListener(OnClickListener):
+class TogaOnClickListener(dynamic_proxy(View.OnClickListener)):
     def __init__(self, button_impl):
         super().__init__()
         self.button_impl = button_impl
@@ -35,13 +37,9 @@ class Button(TextViewWidget):
         self.set_background_filter(value)
 
     def rehint(self):
-        # Like other text-viewing widgets, Android crashes when rendering
-        # `Button` unless it has its layout params set. Guard for that case.
-        if not self.native.getLayoutParams():
-            return
         self.native.measure(
-            View__MeasureSpec.UNSPECIFIED,
-            View__MeasureSpec.UNSPECIFIED,
+            View.MeasureSpec.UNSPECIFIED,
+            View.MeasureSpec.UNSPECIFIED,
         )
         self.interface.intrinsic.width = at_least(self.native.getMeasuredWidth())
         self.interface.intrinsic.height = self.native.getMeasuredHeight()

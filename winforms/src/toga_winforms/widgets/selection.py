@@ -1,9 +1,9 @@
 from contextlib import contextmanager
 
+import System.Windows.Forms as WinForms
 from travertino.size import at_least
 
-from toga_winforms.libs import WinForms
-
+from ..libs.wrapper import WeakrefCallable
 from .base import Widget
 
 
@@ -12,7 +12,9 @@ class TogaComboBox(WinForms.ComboBox):
         super().__init__()
         self.impl = impl
         self.DropDownStyle = WinForms.ComboBoxStyle.DropDownList
-        self.SelectedIndexChanged += self.winforms_selected_index_changed
+        self.SelectedIndexChanged += WeakrefCallable(
+            self.winforms_selected_index_changed
+        )
 
     def winforms_selected_index_changed(self, sender, event):
         self.impl.on_change()

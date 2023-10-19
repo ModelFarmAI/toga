@@ -1,4 +1,6 @@
-from unittest.mock import MagicMock
+import asyncio
+from pathlib import Path
+from unittest.mock import Mock
 
 import toga
 from toga.widgets.base import WidgetRegistry
@@ -13,7 +15,7 @@ class AppTests(TestCase):
         self.app_id = "org.beeware.test-app"
         self.id = "dom-id"
 
-        self.content = MagicMock()
+        self.content = Mock()
         self.content_id = "content-id"
         self.content.id = self.content_id
 
@@ -35,19 +37,13 @@ class AppTests(TestCase):
 
     def test_app_icon(self):
         # App icon will default to a name autodetected from the running module
-        self.assertEqual(self.app.icon.path, "resources/toga")
-
+        self.assertEqual(self.app.icon.path, Path("resources/toga"))
         # This icon will be bound
-        self.assertIsNotNone(self.app.icon._impl)
-
-        # Binding is a no op.
-        with self.assertWarns(DeprecationWarning):
-            self.app.icon.bind()
         self.assertIsNotNone(self.app.icon._impl)
 
         # Set the icon to a different resource
         self.app.icon = "other.icns"
-        self.assertEqual(self.app.icon.path, "other.icns")
+        self.assertEqual(self.app.icon.path, Path("other.icns"))
 
         # This icon name will *not* exist. The Impl will be the DEFAULT_ICON's impl
         self.assertEqual(self.app.icon._impl, toga.Icon.DEFAULT_ICON._impl)
@@ -109,10 +105,8 @@ class AppTests(TestCase):
         self.assertFalse(self.app.is_full_screen)
 
     def test_add_window(self):
-        test_window = toga.Window()
-
         self.assertEqual(len(self.app.windows), 0)
-        self.app.windows += test_window
+        test_window = toga.Window()
         self.assertEqual(len(self.app.windows), 1)
         self.app.windows += test_window
         self.assertEqual(len(self.app.windows), 1)
@@ -124,24 +118,21 @@ class AppTests(TestCase):
 
     def test_remove_window(self):
         test_window = toga.Window()
-        self.app.windows += test_window
         self.assertEqual(len(self.app.windows), 1)
         self.app.windows -= test_window
         self.assertEqual(len(self.app.windows), 0)
 
-        not_a_window = "not_a_window"
         with self.assertRaises(TypeError):
-            self.app.windows -= not_a_window
+            self.app.windows -= "not_a_window"
 
-        test_window_not_in_app = toga.Window()
         with self.assertRaises(AttributeError):
-            self.app.windows -= test_window_not_in_app
+            self.app.windows -= test_window
 
     def test_app_contains_window(self):
         test_window = toga.Window()
-        self.assertFalse(test_window in self.app.windows)
-        self.app.windows += test_window
         self.assertTrue(test_window in self.app.windows)
+        self.app.windows -= test_window
+        self.assertFalse(test_window in self.app.windows)
 
     def test_window_iteration(self):
         test_windows = [
@@ -161,16 +152,34 @@ class AppTests(TestCase):
         self.assertActionPerformed(self.app, "beep")
 
     def test_add_background_task(self):
+        thing = Mock()
+
         async def test_handler(sender):
-            pass
+            thing()
 
         self.app.add_background_task(test_handler)
-        self.assertActionPerformedWith(
-            self.app,
-            "loop:call_soon_threadsafe",
-            handler=test_handler,
-            args=(None,),
-        )
+
+        async def run_test():
+            # Give the background task time to run.
+            await asyncio.sleep(0.1)
+            thing.assert_called_once()
+
+        self.app._impl.loop.run_until_complete(run_test())
+
+    def test_override_startup(self):
+        class BadApp(toga.App):
+            "A startup method that doesn't assign main window raises an error (#760)"
+
+            def startup(self):
+                # Override startup but don't create a main window
+                pass
+
+        app = BadApp(app_name="bad_app", formal_name="Bad Aoo", app_id="org.beeware")
+        with self.assertRaisesRegex(
+            ValueError,
+            r"Application does not have a main window.",
+        ):
+            app.main_loop()
 
 
 class DocumentAppTests(TestCase):
@@ -181,13 +190,25 @@ class DocumentAppTests(TestCase):
         self.app_id = "beeware.org"
         self.id = "id"
 
-        self.content = MagicMock()
+        self.content = Mock()
 
         self.app = toga.DocumentApp(self.name, self.app_id, id=self.id)
 
     def test_app_documents(self):
         self.assertEqual(self.app.documents, [])
 
-        doc = MagicMock()
+        doc = Mock()
         self.app._documents.append(doc)
         self.assertEqual(self.app.documents, [doc])
+
+    def test_override_startup(self):
+        mock = Mock()
+
+        class DocApp(toga.DocumentApp):
+            def startup(self):
+                # A document app doesn't have to provide a Main Window.
+                mock()
+
+        app = DocApp(app_name="docapp", formal_name="Doc App", app_id="org.beeware")
+        app.main_loop()
+        mock.assert_called_once()

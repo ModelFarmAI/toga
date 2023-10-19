@@ -1,75 +1,49 @@
-from .libs.android import R__id
-from .libs.android.view import ViewTreeObserver__OnGlobalLayoutListener
+from decimal import ROUND_UP
+
+from java import dynamic_proxy
+
+from android import R
+from android.view import ViewTreeObserver
+
+from .container import Container
 
 
-class AndroidViewport(ViewTreeObserver__OnGlobalLayoutListener):
-    def __init__(self, native, container):
-        """
-        :param native: A native widget whose size will be tracked.
-        :param container: An object with a ``content`` attribute, which will have
-            ``refresh()`` called on it whenever the native widget's size changes.
-        """
+class LayoutListener(dynamic_proxy(ViewTreeObserver.OnGlobalLayoutListener)):
+    def __init__(self, window):
         super().__init__()
-        self.native = native
-        self.container = container
-        self.last_size = (None, None)
-        native.getViewTreeObserver().addOnGlobalLayoutListener(self)
-
-        self.dpi = native.getContext().getResources().getDisplayMetrics().densityDpi
-        # Toga needs to know how the current DPI compares to the platform default,
-        # which is 160: https://developer.android.com/training/multiscreen/screendensities
-        self.baseline_dpi = 160
-        self.scale = float(self.dpi) / self.baseline_dpi
+        self.window = window
 
     def onGlobalLayout(self):
         """This listener is run after each native layout pass.
 
         If any view's size or position has changed, the new values will be visible here.
         """
-        new_size = (self.width, self.height)
-        if self.last_size != new_size:
-            self.last_size = new_size
-            if self.container.content:
-                self.container.content.refresh()
-
-    @property
-    def width(self):
-        return self.native.getWidth()
-
-    @property
-    def height(self):
-        return self.native.getHeight()
+        native_parent = self.window.native_content.getParent()
+        self.window.resize_content(native_parent.getWidth(), native_parent.getHeight())
 
 
-class Window:
+class Window(Container):
+    _is_main_window = False
+
     def __init__(self, interface, title, position, size):
         super().__init__()
         self.interface = interface
         self.interface._impl = self
-        # self.set_title(title)
+        self._initial_title = title
+
+        if not self._is_main_window:
+            raise RuntimeError(
+                "Secondary windows cannot be created on mobile platforms"
+            )
 
     def set_app(self, app):
         self.app = app
-        self.viewport = AndroidViewport(
-            self.app.native.findViewById(R__id.content).__global__(), self.interface
+        native_parent = app.native.findViewById(R.id.content)
+        self.init_container(native_parent)
+        native_parent.getViewTreeObserver().addOnGlobalLayoutListener(
+            LayoutListener(self)
         )
-
-    def clear_content(self):
-        if self.interface.content:
-            for child in self.interface.content.children:
-                child._impl.container = None
-
-    def set_content(self, widget):
-        # Set the widget's viewport to be based on the window's content.
-        widget.viewport = self.viewport
-        # Set the app's entire contentView to the desired widget. This means that
-        # calling Window.set_content() on any Window object automatically updates
-        # the app, meaning that every Window object acts as the MainWindow.
-        self.app.native.setContentView(widget.native)
-
-        # Attach child widgets to widget as their container.
-        for child in widget.interface.children:
-            child._impl.container = widget
+        self.set_title(self._initial_title)
 
     def get_title(self):
         return str(self.app.native.getTitle())
@@ -85,7 +59,7 @@ class Window:
         pass
 
     def get_size(self):
-        return self.viewport.last_size
+        return (self.width, self.height)
 
     def set_size(self, size):
         # Does nothing on mobile
@@ -100,6 +74,20 @@ class Window:
     def hide(self):
         # A no-op, as the window cannot be hidden.
         pass
+
+    def refreshed(self):
+        if self.native_width and self.native_height:
+            layout = self.interface.content.layout
+            available_width = self.scale_out(self.native_width, ROUND_UP)
+            available_height = self.scale_out(self.native_height, ROUND_UP)
+            if (layout.width > available_width) or (layout.height > available_height):
+                # Show the sizes in terms of CSS pixels.
+                print(
+                    f"Warning: Window content {(layout.width, layout.height)} "
+                    f"exceeds available space {(available_width, available_height)}"
+                )
+
+        super().refreshed()
 
     def get_visible(self):
         # The window is always visible

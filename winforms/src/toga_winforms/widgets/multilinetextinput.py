@@ -1,8 +1,11 @@
+import System.Windows.Forms as WinForms
+from System.Drawing import SystemColors
 from travertino.size import at_least
 
 from toga_winforms.colors import native_color
-from toga_winforms.libs import HorizontalTextAlignment, SystemColors, WinForms
+from toga_winforms.libs.fonts import HorizontalTextAlignment
 
+from ..libs.wrapper import WeakrefCallable
 from .textinput import TextInput
 
 
@@ -12,12 +15,12 @@ class MultilineTextInput(TextInput):
         # (https://stackoverflow.com/a/612234).
         self.native = WinForms.RichTextBox()
         self.native.Multiline = True
-        self.native.TextChanged += self.winforms_text_changed
+        self.native.TextChanged += WeakrefCallable(self.winforms_text_changed)
 
         # When moving focus with the tab key, the Enter/Leave event handlers see the
         # wrong value of ContainsFocus, so we use GotFocus/LostFocus instead.
-        self.native.GotFocus += self.winforms_got_focus
-        self.native.LostFocus += self.winforms_lost_focus
+        self.native.GotFocus += WeakrefCallable(self.winforms_got_focus)
+        self.native.LostFocus += WeakrefCallable(self.winforms_lost_focus)
 
         # Dummy values used during initialization
         self._placeholder = ""

@@ -1,3 +1,4 @@
+from rubicon.objc import objc_method, objc_property
 from travertino.size import at_least
 
 from toga.colors import TRANSPARENT
@@ -9,13 +10,15 @@ from toga_cocoa.libs import (
     NSTextView,
     NSViewHeightSizable,
     NSViewWidthSizable,
-    objc_method,
 )
 
 from .base import Widget
 
 
 class TogaTextView(NSTextView):
+    interface = objc_property(object, weak=True)
+    impl = objc_property(object, weak=True)
+
     @objc_method
     def textDidChange_(self, notification) -> None:
         self.interface.on_change(None)
@@ -31,9 +34,6 @@ class MultilineTextInput(Widget):
         self.native.autohidesScrollers = False
         self.native.borderType = NSBezelBorder
 
-        # Disable all autolayout functionality on the outer widget
-        self.native.translatesAutoresizingMaskIntoConstraints = False
-
         # Create the actual text widget
         self.native_text = TogaTextView.alloc().init()
         self.native_text.interface = self.interface
@@ -41,6 +41,7 @@ class MultilineTextInput(Widget):
 
         self.native_text.editable = True
         self.native_text.selectable = True
+        self.native_text.allowsUndo = True
         self.native_text.verticallyResizable = True
         self.native_text.horizontallyResizable = False
         self.native_text.usesAdaptiveColorMappingForDarkAppearance = True
@@ -54,7 +55,7 @@ class MultilineTextInput(Widget):
         self.add_constraints()
 
     def get_placeholder(self):
-        return self.native_text.placeholderString
+        return str(self.native_text.placeholderString)
 
     def set_placeholder(self, value):
         self.native_text.placeholderString = value
@@ -73,7 +74,7 @@ class MultilineTextInput(Widget):
         self.native_text.editable = not value
 
     def get_value(self):
-        return self.native_text.string
+        return str(self.native_text.string)
 
     def set_value(self, value):
         self.native_text.string = value

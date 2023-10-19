@@ -1,20 +1,23 @@
 import asyncio
 
-from rubicon.java import android_events
+from java import dynamic_proxy
+from org.beeware.android import IPythonApp, MainActivity
 
 import toga
+from android.graphics.drawable import Drawable
+from android.media import RingtoneManager
+from android.view import Menu, MenuItem
 from toga.command import Group
 
-from .libs.activity import IPythonApp, MainActivity
-from .libs.android.graphics import Drawable
-from .libs.android.view import Menu, MenuItem
+from .libs import events
 from .window import Window
 
-# `MainWindow` is defined here in `app.py`, not `window.py`, to mollify the test suite.
-MainWindow = Window
+
+class MainWindow(Window):
+    _is_main_window = True
 
 
-class TogaApp(IPythonApp):
+class TogaApp(dynamic_proxy(IPythonApp)):
     last_intent_requestcode = (
         -1
     )  # always increment before using it for invoking new Intents
@@ -25,6 +28,7 @@ class TogaApp(IPythonApp):
         super().__init__()
         self._impl = app
         MainActivity.setPythonApp(self)
+        self.native = MainActivity.singletonThis
         print("Python app launched & stored in Android Activity class")
 
     def onCreate(self):
@@ -161,14 +165,6 @@ class TogaApp(IPythonApp):
 
         return True
 
-    @property
-    def native(self):
-        # We access `MainActivity.singletonThis` freshly each time, rather than
-        # storing a reference in `__init__()`, because it's not safe to use the
-        # same reference over time because `rubicon-java` creates a JNI local
-        # reference.
-        return MainActivity.singletonThis
-
 
 class App:
     def __init__(self, interface):
@@ -176,7 +172,7 @@ class App:
         self.interface._impl = self
         self._listener = None
 
-        self.loop = android_events.AndroidEventLoop()
+        self.loop = events.AndroidEventLoop()
 
     @property
     def native(self):
@@ -187,7 +183,7 @@ class App:
         # the app's `.native` is the listener's native Java class.
         self._listener = TogaApp(self)
         # Call user code to populate the main window
-        self.interface.startup()
+        self.interface._startup()
 
     def open_document(self, fileURL):
         print("Can't open document %s (yet)" % fileURL)
@@ -207,7 +203,11 @@ class App:
         self.interface.factory.not_implemented("App.show_about_dialog()")
 
     def beep(self):
-        self.interface.factory.not_implemented("App.beep()")
+        uri = RingtoneManager.getActualDefaultRingtoneUri(
+            self.native.getApplicationContext(), RingtoneManager.TYPE_NOTIFICATION
+        )
+        ringtone = RingtoneManager.getRingtone(self.native.getApplicationContext(), uri)
+        ringtone.play()
 
     def exit(self):
         pass
@@ -233,3 +233,9 @@ class App:
             return result_future.result()
         except AttributeError:
             raise RuntimeError("No appropriate Activity found to handle this intent.")
+
+    def hide_cursor(self):
+        pass
+
+    def show_cursor(self):
+        pass

@@ -1,26 +1,17 @@
 from toga.command import Command as BaseCommand
+from toga_cocoa.container import Container
 from toga_cocoa.libs import (
     SEL,
     NSBackingStoreBuffered,
-    NSClosableWindowMask,
-    NSLayoutAttributeBottom,
-    NSLayoutAttributeLeft,
-    NSLayoutAttributeRight,
-    NSLayoutAttributeTop,
-    NSLayoutConstraint,
-    NSLayoutRelationGreaterThanOrEqual,
     NSMakeRect,
-    NSMiniaturizableWindowMask,
     NSMutableArray,
-    NSObject,
     NSPoint,
-    NSResizableWindowMask,
     NSScreen,
     NSSize,
-    NSTitledWindowMask,
     NSToolbar,
     NSToolbarItem,
     NSWindow,
+    NSWindowStyleMask,
     objc_method,
     objc_property,
 )
@@ -30,25 +21,7 @@ def toolbar_identifier(cmd):
     return "ToolbarItem-%s" % id(cmd)
 
 
-class CocoaViewport:
-    def __init__(self, view):
-        self.view = view
-        # macOS always renders at 96dpi. Scaling is handled
-        # transparently at the level of the screen compositor.
-        self.dpi = 96
-        self.baseline_dpi = self.dpi
-
-    @property
-    def width(self):
-        # If `view` is `None`, we'll treat this a 0x0 viewport.
-        return 0 if self.view is None else self.view.frame.size.width
-
-    @property
-    def height(self):
-        return 0 if self.view is None else self.view.frame.size.height
-
-
-class WindowDelegate(NSObject):
+class TogaWindow(NSWindow):
     interface = objc_property(object, weak=True)
     impl = objc_property(object, weak=True)
 
@@ -59,17 +32,8 @@ class WindowDelegate(NSObject):
     @objc_method
     def windowDidResize_(self, notification) -> None:
         if self.interface.content:
-            # print()
-            # print("Window resize", (
-            #   notification.object.contentView.frame.size.width,
-            #   notification.object.contentView.frame.size.height
-            # ))
-            if (
-                notification.object.contentView.frame.size.width > 0.0
-                and notification.object.contentView.frame.size.height > 0.0
-            ):
-                # Set the window to the new size
-                self.interface.content.refresh()
+            # Set the window to the new size
+            self.interface.content.refresh()
 
     ######################################################################
     # Toolbar delegate methods
@@ -138,25 +102,20 @@ class WindowDelegate(NSObject):
         item.action(obj)
 
 
-class TogaWindow(NSWindow):
-    interface = objc_property(object, weak=True)
-    impl = objc_property(object, weak=True)
-
-
 class Window:
     def __init__(self, interface, title, position, size):
         self.interface = interface
         self.interface._impl = self
 
-        mask = NSTitledWindowMask
-        if self.interface.closeable:
-            mask |= NSClosableWindowMask
+        mask = NSWindowStyleMask.Titled
+        if self.interface.closable:
+            mask |= NSWindowStyleMask.Closable
 
-        if self.interface.resizeable:
-            mask |= NSResizableWindowMask
+        if self.interface.resizable:
+            mask |= NSWindowStyleMask.Resizable
 
         if self.interface.minimizable:
-            mask |= NSMiniaturizableWindowMask
+            mask |= NSWindowStyleMask.Miniaturizable
 
         # Create the window with a default frame;
         # we'll update size and position later.
@@ -169,15 +128,22 @@ class Window:
         self.native.interface = self.interface
         self.native.impl = self
 
+        # Cocoa releases windows when they are closed; this causes havoc with
+        # Toga's widget cleanup because the ObjC runtime thinks there's no
+        # references to the object left. Add an explicit reference to the window.
+        self.native.retain()
+
         self.set_title(title)
         self.set_size(size)
         self.set_position(position)
 
-        self.delegate = WindowDelegate.alloc().init()
-        self.delegate.interface = self.interface
-        self.delegate.impl = self
+        self.native.delegate = self.native
 
-        self.native.delegate = self.delegate
+        self.container = Container(on_refresh=self.content_refreshed)
+        self.native.contentView = self.container.native
+
+    def __del__(self):
+        self.native.release()
 
     def create_toolbar(self):
         self._toolbar_items = {}
@@ -185,55 +151,33 @@ class Window:
             if isinstance(cmd, BaseCommand):
                 self._toolbar_items[toolbar_identifier(cmd)] = cmd
 
-        self._toolbar_native = NSToolbar.alloc().initWithIdentifier_(
+        self._toolbar_native = NSToolbar.alloc().initWithIdentifier(
             "Toolbar-%s" % id(self)
         )
-        self._toolbar_native.setDelegate_(self.delegate)
+        self._toolbar_native.setDelegate(self.native)
 
-        self.native.setToolbar_(self._toolbar_native)
-
-    def clear_content(self):
-        if self.interface.content:
-            for child in self.interface.content.children:
-                child._impl.container = None
+        self.native.setToolbar(self._toolbar_native)
 
     def set_content(self, widget):
-        # Set the window's view to be the widget's native object.
-        self.native.contentView = widget.native
+        # Set the content of the window's container
+        self.container.content = widget
 
-        # Set the widget's viewport to be based on the window's content.
-        widget.viewport = CocoaViewport(view=widget.native)
+    def content_refreshed(self, container):
+        min_width = self.interface.content.layout.min_width
+        min_height = self.interface.content.layout.min_height
 
-        # Add all children to the content widget.
-        for child in widget.interface.children:
-            child._impl.container = widget
+        # If the minimum layout is bigger than the current window,
+        # increase the size of the window.
+        frame = self.native.frame
+        if frame.size.width < min_width and frame.size.height < min_height:
+            self.set_size((min_width, min_height))
+        elif frame.size.width < min_width:
+            self.set_size((min_width, frame.size.height))
+        elif frame.size.height < min_height:
+            self.set_size((frame.size.width, min_height))
 
-        # Enforce a minimum size based on the content size.
-        # This is enforcing the *minimum* size; the window might actually be
-        # bigger. If the window is resizable, using >= allows the window to
-        # be dragged larger; if not resizable, it enforces the smallest
-        # size that can be programmatically set on the window.
-        self._min_width_constraint = NSLayoutConstraint.constraintWithItem_attribute_relatedBy_toItem_attribute_multiplier_constant_(  # noqa: E501
-            widget.native,
-            NSLayoutAttributeRight,
-            NSLayoutRelationGreaterThanOrEqual,
-            widget.native,
-            NSLayoutAttributeLeft,
-            1.0,
-            100,
-        )
-        widget.native.addConstraint(self._min_width_constraint)
-
-        self._min_height_constraint = NSLayoutConstraint.constraintWithItem_attribute_relatedBy_toItem_attribute_multiplier_constant_(  # noqa: E501
-            widget.native,
-            NSLayoutAttributeBottom,
-            NSLayoutRelationGreaterThanOrEqual,
-            widget.native,
-            NSLayoutAttributeTop,
-            1.0,
-            100,
-        )
-        widget.native.addConstraint(self._min_height_constraint)
+        self.container.min_width = min_width
+        self.container.min_height = min_height
 
     def get_title(self):
         return str(self.native.title)
@@ -242,10 +186,6 @@ class Window:
         self.native.title = title
 
     def get_position(self):
-        # If there is no active screen, we can't get a position
-        if len(NSScreen.screens) == 0:
-            return 0, 0
-
         # The "primary" screen has index 0 and origin (0, 0).
         primary_screen = NSScreen.screens[0].frame
         window_frame = self.native.frame
@@ -259,10 +199,6 @@ class Window:
         )
 
     def set_position(self, position):
-        # If there is no active screen, we can't set a position
-        if len(NSScreen.screens) == 0:
-            return
-
         # The "primary" screen has index 0 and origin (0, 0).
         primary_screen = NSScreen.screens[0].frame
 
@@ -288,19 +224,6 @@ class Window:
     def show(self):
         self.native.makeKeyAndOrderFront(None)
 
-        # Render of the content with a 0 sized viewport; this will
-        # establish the minimum possible content size. Use that to enforce
-        # a minimum window size.
-        self.interface.content.style.layout(
-            self.interface.content,
-            CocoaViewport(view=None),
-        )
-        self._min_width_constraint.constant = self.interface.content.layout.width
-        self._min_height_constraint.constant = self.interface.content.layout.height
-
-        # Refresh with the actual viewport to do the proper rendering.
-        self.interface.content.refresh()
-
     def hide(self):
         self.native.orderOut(self.native)
 
@@ -308,17 +231,16 @@ class Window:
         return bool(self.native.isVisible)
 
     def set_full_screen(self, is_full_screen):
-        self.interface.factory.not_implemented("Window.set_full_screen()")
+        current_state = bool(self.native.styleMask & NSWindowStyleMask.FullScreen)
+        if is_full_screen != current_state:
+            self.native.toggleFullScreen(self.native)
 
     def cocoa_windowShouldClose(self):
-        if self.interface.on_close._raw:
-            # The on_close handler has a cleanup method that will enforce
-            # the close if the on_close handler requests it; this initial
-            # "should close" request can always return False.
-            self.interface.on_close(self)
-            return False
-        else:
-            return True
+        # The on_close handler has a cleanup method that will enforce
+        # the close if the on_close handler requests it; this initial
+        # "should close" request can always return False.
+        self.interface.on_close(None)
+        return False
 
     def close(self):
         self.native.close()

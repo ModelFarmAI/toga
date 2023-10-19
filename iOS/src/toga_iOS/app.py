@@ -1,20 +1,14 @@
 import asyncio
 
-from rubicon.objc import SEL, objc_method
+from rubicon.objc import objc_method
 from rubicon.objc.eventloop import EventLoopPolicy, iOSLifecycle
 
-from toga_iOS.libs import (
-    NSNotificationCenter,
-    UIKeyboardFrameEndUserInfoKey,
-    UIKeyboardWillHideNotification,
-    UIKeyboardWillShowNotification,
-    UIResponder,
-)
+from toga_iOS.libs import UIResponder
 from toga_iOS.window import Window
 
 
 class MainWindow(Window):
-    pass
+    _is_main_window = True
 
 
 class PythonAppDelegate(UIResponder):
@@ -43,22 +37,6 @@ class PythonAppDelegate(UIResponder):
         print("App finished launching.")
         App.app.native = application
         App.app.create()
-
-        NSNotificationCenter.defaultCenter.addObserver(
-            self,
-            selector=SEL("keyboardWillShow:"),
-            name=UIKeyboardWillShowNotification,
-            object=None,
-        )
-        NSNotificationCenter.defaultCenter.addObserver(
-            self,
-            selector=SEL("keyboardWillHide:"),
-            name=UIKeyboardWillHideNotification,
-            object=None,
-        )
-        # Set the initial keyboard size.
-        App.app.interface.main_window.content._impl.viewport.kb_height = 0.0
-
         return True
 
     @objc_method
@@ -71,27 +49,6 @@ class PythonAppDelegate(UIResponder):
     ) -> None:
         """This callback is invoked when rotating the device from landscape to portrait
         and vice versa."""
-        App.app.interface.main_window.content.refresh()
-
-    @objc_method
-    def keyboardWillShow_(self, notification) -> None:
-        # Keyboard is about to be displayed.
-        # This will fire multiple times - once to display the keyboard,
-        # and again to display the autocomplete bar.
-        kb_height = App.app.interface.main_window._impl.controller.view.convertRect(
-            notification.userInfo.objectForKey(
-                UIKeyboardFrameEndUserInfoKey
-            ).CGRectValue,
-            fromView=None,
-        ).size.height
-        App.app.interface.main_window.content._impl.viewport.kb_height = kb_height
-
-        App.app.interface.main_window.content.refresh()
-
-    @objc_method
-    def keyboardWillHide_(self, notification) -> None:
-        # Reset the layout to the size of the screen.
-        App.app.interface.main_window.content._impl.viewport.kb_height = 0.0
         App.app.interface.main_window.content.refresh()
 
 
@@ -110,7 +67,7 @@ class App:
 
     def create(self):
         """Calls the startup method on the interface."""
-        self.interface.startup()
+        self.interface._startup()
 
     def open_document(self, fileURL):
         """Add a new document to this app."""
@@ -133,4 +90,10 @@ class App:
         self.interface.factory.not_implemented("App.beep()")
 
     def exit(self):
+        pass
+
+    def hide_cursor(self):
+        pass
+
+    def show_cursor(self):
         pass

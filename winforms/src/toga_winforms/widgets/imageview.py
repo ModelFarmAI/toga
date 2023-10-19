@@ -1,5 +1,7 @@
+import System.Windows.Forms as WinForms
+from System.Drawing import Bitmap
+
 from toga.widgets.imageview import rehint_imageview
-from toga_winforms.libs import Bitmap, WinForms
 
 from .base import Widget
 
@@ -7,7 +9,6 @@ from .base import Widget
 class ImageView(Widget):
     def create(self):
         self.native = WinForms.PictureBox()
-        self.native.interface = self.interface
         self.native.SizeMode = WinForms.PictureBoxSizeMode.Zoom
 
         # If self.native.Image is None, Winforms renders it as a white square
@@ -29,8 +30,7 @@ class ImageView(Widget):
 
     def rehint(self):
         width, height, aspect_ratio = rehint_imageview(
-            image=self.interface.image,
-            style=self.interface.style,
+            self.interface.image, self.interface.style, self.dpi_scale
         )
         self.interface.intrinsic.width = width
         self.interface.intrinsic.height = height

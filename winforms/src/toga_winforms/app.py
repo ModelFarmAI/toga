@@ -2,22 +2,20 @@ import asyncio
 import re
 import sys
 import threading
+from ctypes import windll
+
+import System.Windows.Forms as WinForms
+from System import Environment, Threading
+from System.Media import SystemSounds
+from System.Net import SecurityProtocolType, ServicePointManager
+from System.Windows.Threading import Dispatcher
 
 import toga
 from toga import Key
 
 from .keys import toga_to_winforms_key
-from .libs import (
-    SecurityProtocolType,
-    ServicePointManager,
-    SystemSounds,
-    Threading,
-    WinForms,
-    shcore,
-    user32,
-    win_version,
-)
 from .libs.proactor import WinformsProactorEventLoop
+from .libs.wrapper import WeakrefCallable
 from .window import Window
 
 
@@ -61,25 +59,31 @@ class App:
     def create(self):
         self.native = WinForms.Application
         self.app_context = WinForms.ApplicationContext()
+        self.app_dispatcher = Dispatcher.CurrentDispatcher
 
         # Check the version of windows and make sure we are setting the DPI mode
         # with the most up to date API
         # Windows Versioning Check Sources : https://www.lifewire.com/windows-version-numbers-2625171
         # and https://docs.microsoft.com/en-us/windows/release-information/
+        win_version = Environment.OSVersion.Version
         if win_version.Major >= 6:  # Checks for Windows Vista or later
             # Represents Windows 8.1 up to Windows 10 before Build 1703 which should use
             # SetProcessDpiAwareness(True)
             if (win_version.Major == 6 and win_version.Minor == 3) or (
                 win_version.Major == 10 and win_version.Build < 15063
             ):
-                shcore.SetProcessDpiAwareness(True)
+                windll.shcore.SetProcessDpiAwareness(True)
+                print(
+                    "WARNING: Your Windows version doesn't support DPI-independent rendering.  "
+                    "We recommend you upgrade to at least Windows 10 Build 1703."
+                )
             # Represents Windows 10 Build 1703 and beyond which should use
             # SetProcessDpiAwarenessContext(-2)
             elif win_version.Major == 10 and win_version.Build >= 15063:
-                user32.SetProcessDpiAwarenessContext(-2)
+                windll.user32.SetProcessDpiAwarenessContext(-2)
             # Any other version of windows should use SetProcessDPIAware()
             else:
-                user32.SetProcessDPIAware()
+                windll.user32.SetProcessDPIAware()
 
         self.native.EnableVisualStyles()
         self.native.SetCompatibleTextRenderingDefault(False)
@@ -129,7 +133,7 @@ class App:
         self._create_app_commands()
 
         # Call user code to populate the main window
-        self.interface.startup()
+        self.interface._startup()
         self.create_menus()
         self.interface.main_window._impl.set_app(self)
 
@@ -151,7 +155,7 @@ class App:
                 item = WinForms.ToolStripMenuItem(cmd.text)
 
                 if cmd.action:
-                    item.Click += cmd._impl.as_handler()
+                    item.Click += WeakrefCallable(cmd._impl.as_handler())
                 item.Enabled = cmd.enabled
 
                 if cmd.shortcut is not None:
@@ -164,9 +168,11 @@ class App:
                 self._menu_items[item] = cmd
                 submenu.DropDownItems.Add(item)
 
+        # The menu bar doesn't need to be positioned, because its `Dock` property
+        # defaults to `Top`.
         self.interface.main_window._impl.native.Controls.Add(menubar)
         self.interface.main_window._impl.native.MainMenuStrip = menubar
-        self.interface.main_window.content.refresh()
+        self.interface.main_window._impl.resize_content()
 
     def _submenu(self, group, menubar):
         try:
@@ -242,9 +248,11 @@ class App:
 
             # This catches errors in handlers, and prints them
             # in a usable form.
-            self.native.ThreadException += self.winforms_thread_exception
+            self.native.ThreadException += WeakrefCallable(
+                self.winforms_thread_exception
+            )
 
-            self.loop.run_forever(self.app_context)
+            self.loop.run_forever(self)
         except Exception as e:
             # In case of an unhandled error at the level of the app,
             # preserve the Python stacktrace

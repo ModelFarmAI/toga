@@ -1,8 +1,9 @@
+import System.Windows.Forms as WinForms
 from travertino.size import at_least
 
-import toga
-from toga_winforms.libs import WinForms
+from toga.widgets.slider import IntSliderImpl
 
+from ..libs.wrapper import WeakrefCallable
 from .base import Widget
 
 # Implementation notes
@@ -17,16 +18,26 @@ NONE_TICK_STYLE = getattr(WinForms.TickStyle, "None")
 BOTTOM_RIGHT_TICK_STYLE = WinForms.TickStyle.BottomRight
 
 
-class Slider(Widget, toga.widgets.slider.IntSliderImpl):
+class Slider(Widget, IntSliderImpl):
     def create(self):
+        IntSliderImpl.__init__(self)
         self.native = WinForms.TrackBar()
         self.native.AutoSize = False
 
         # Unlike Scroll, ValueChanged also fires when the value is changed
         # programmatically, such as via the testbed probe.
-        self.native.ValueChanged += lambda sender, event: self.on_change()
-        self.native.MouseDown += lambda sender, event: self.interface.on_press(None)
-        self.native.MouseUp += lambda sender, event: self.interface.on_release(None)
+        self.native.ValueChanged += WeakrefCallable(self.winforms_value_chaned)
+        self.native.MouseDown += WeakrefCallable(self.winforms_mouse_down)
+        self.native.MouseUp += WeakrefCallable(self.winforms_mouse_up)
+
+    def winforms_value_chaned(self, sender, event):
+        self.on_change()
+
+    def winforms_mouse_down(self, sender, event):
+        self.interface.on_press(None)
+
+    def winforms_mouse_up(self, sender, event):
+        self.interface.on_release(None)
 
     def get_int_value(self):
         return self.native.Value
