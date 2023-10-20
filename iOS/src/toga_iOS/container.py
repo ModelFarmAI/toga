@@ -1,6 +1,7 @@
 from .libs import (
     UIApplication,
     UINavigationController,
+    UIScreen,
     UIView,
     UIViewController,
 )
@@ -70,11 +71,11 @@ class Container(BaseContainer):
 
     @property
     def width(self):
-        return self.layout_native.bounds.size.width
+        return UIScreen.mainScreen.bounds.size.width
 
     @property
     def height(self):
-        return self.layout_native.bounds.size.height
+        return UIScreen.mainScreen.bounds.size.height
 
     @property
     def top_offset(self):
@@ -119,7 +120,7 @@ class RootContainer(Container):
 
     @property
     def height(self):
-        return self.layout_native.bounds.size.height - self.top_offset
+        return UIScreen.mainScreen.bounds.size.height - self.top_offset
 
     @property
     def top_offset(self):
