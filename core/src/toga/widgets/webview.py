@@ -16,6 +16,7 @@ class WebView(Widget):
         self,
         id=None,
         style=None,
+        bg_color: str | None = None,
         url: str | None = None,
         user_agent: str | None = None,
         on_webview_load: callable | None = None,
@@ -43,6 +44,7 @@ class WebView(Widget):
         # Set the load handler before loading the first URL.
         self.on_webview_load = on_webview_load
         self.url = url
+        self.bg_color = bg_color
 
     def _set_url(self, url, future):
         # Utility method for validating and setting the URL with a future.

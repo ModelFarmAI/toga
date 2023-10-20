@@ -59,12 +59,12 @@ class TogaWebView(WKWebView):
     @objc_method
     def userContentController_didReceiveScriptMessage_(self, userContentController, message) -> None:
         colors = json.loads(str(message.body))
-        top_colors = parse_color_rule(colors["top_background"], self.interface.style)
+        top_colors = parse_color_rule(colors["top_background"], self.interface.bg_color)
         topColor = UIColor.colorWithRed(top_colors[0]/255.0, green=top_colors[1]/255.0, blue=top_colors[2]/255.0, alpha=top_colors[3]/255.0)
         self.impl.topBackgroundView.backgroundColor = topColor
         self.superview().insertSubview(self.impl.topBackgroundView, belowSubview=self)
         
-        bottom_colors = parse_color_rule(colors["bottom_background"], self.interface.style)
+        bottom_colors = parse_color_rule(colors["bottom_background"], self.interface.bg_color)
         bottomColor = UIColor.colorWithRed(bottom_colors[0]/255.0, green=bottom_colors[1]/255.0, blue=bottom_colors[2]/255.0, alpha=bottom_colors[3]/255.0)
         self.impl.bottomBackgroundView.backgroundColor = bottomColor
         self.superview().insertSubview(self.impl.bottomBackgroundView, belowSubview=self)
