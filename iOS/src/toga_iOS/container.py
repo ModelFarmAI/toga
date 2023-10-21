@@ -1,7 +1,6 @@
 from .libs import (
     UIApplication,
     UINavigationController,
-    UIScreen,
     UIView,
     UIViewController,
 )
