@@ -57,6 +57,9 @@ class WebView(Widget):
         self.native.inspectable = True
         self.native.navigationDelegate = self.native
 
+        self.native.UIDelegate = self.native
+
+
         self.loaded_future = None
 
         # Add the layout constraints

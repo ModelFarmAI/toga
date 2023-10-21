@@ -65,6 +65,7 @@ class Container(BaseContainer):
         super().__init__(content=content, on_refresh=on_refresh)
         self.native = UIView.alloc().init()
         self.native.translatesAutoresizingMaskIntoConstraints = True
+        self.native.autoresizingMask = int('0b111111', 2) ## bitmap of all the margins
 
         self.layout_native = self.native if layout_native is None else layout_native
 
@@ -112,6 +113,8 @@ class RootContainer(Container):
             self.content_controller
         )
 
+        self.controller.navigationBarHidden = True
+
         # Set the controller's view to be the root content widget
         self.content_controller.view = self.native
 
@@ -121,6 +124,8 @@ class RootContainer(Container):
 
     @property
     def top_offset(self):
+        return 0
+        ## to remove all the safe area on the top
         return (
             UIApplication.sharedApplication.statusBarFrame.size.height
             + self.controller.navigationBar.frame.size.height
