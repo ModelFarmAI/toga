@@ -71,11 +71,11 @@ class Container(BaseContainer):
 
     @property
     def width(self):
-        return self.layout_native .bounds.size.width
+        return self.layout_native.bounds.size.width
 
     @property
     def height(self):
-        return self.layout_native .bounds.size.height
+        return self.layout_native.bounds.size.height
 
     @property
     def top_offset(self):
@@ -120,7 +120,7 @@ class RootContainer(Container):
 
     @property
     def height(self):
-        return self.layout_native .bounds.size.height - self.top_offset
+        return self.layout_native.bounds.size.height - self.top_offset
 
     @property
     def top_offset(self):
