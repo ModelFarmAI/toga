@@ -65,6 +65,7 @@ class Container(BaseContainer):
         super().__init__(content=content, on_refresh=on_refresh)
         self.native = UIView.alloc().init()
         self.native.translatesAutoresizingMaskIntoConstraints = True
+        self.native.autoresizingMask = int('0b111111', 2) ## bitmap of all the margins
 
         self.layout_native = self.native if layout_native is None else layout_native
 
