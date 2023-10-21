@@ -66,16 +66,17 @@ class Container(BaseContainer):
         super().__init__(content=content, on_refresh=on_refresh)
         self.native = UIView.alloc().init()
         self.native.translatesAutoresizingMaskIntoConstraints = True
+        self.native.autoresizingMask = int('0b111111', 2) ## bitmap of all the margins
 
         self.layout_native = self.native if layout_native is None else layout_native
 
     @property
     def width(self):
-        return UIScreen.mainScreen.bounds.size.width
+        return self.layout_native .bounds.size.width
 
     @property
     def height(self):
-        return UIScreen.mainScreen.bounds.size.height
+        return self.layout_native .bounds.size.height
 
     @property
     def top_offset(self):
@@ -120,7 +121,7 @@ class RootContainer(Container):
 
     @property
     def height(self):
-        return UIScreen.mainScreen.bounds.size.height - self.top_offset
+        return self.layout_native .bounds.size.height - self.top_offset
 
     @property
     def top_offset(self):
