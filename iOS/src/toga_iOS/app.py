@@ -3,7 +3,7 @@ import asyncio
 from rubicon.objc import objc_method
 from rubicon.objc.eventloop import EventLoopPolicy, iOSLifecycle
 
-from toga_iOS.libs import UIResponder, libdispatch, DISPATCH_TIME_NOW, NSEC_PER_SEC
+from toga_iOS.libs import UIResponder
 from toga_iOS.window import Window
 
 
@@ -25,15 +25,12 @@ class PythonAppDelegate(UIResponder):
     @objc_method
     def applicationDidEnterBackground_(self, application) -> None:
         print("App entered background.")
-        libdispatch.dispatch_after(libdispatch.dispatch_time(DISPATCH_TIME_NOW, 25 * NSEC_PER_SEC), App.app.interface.cleanup_queue, App.app.interface.cleanup_dispatch_block) # Seems that the queue gets suspended 30 seconds after entering the background
-
+        App.app.interface.enter_background()
+        
     @objc_method
     def applicationWillEnterForeground_(self, application) -> None:
         print("App about to enter foreground.")
-        libdispatch.dispatch_block_cancel(App.app.interface.cleanup_dispatch_block)
-        libdispatch.dispatch_sync(App.app.interface.cleanup_queue, App.app.interface.startup_dispatch_block)
-        App.app.interface.cleanup_dispatch_block = App.app.interface.get_cleanup_dispatch_block()
-        App.app.interface.startup_dispatch_block = App.app.interface.get_startup_dispatch_block() #Need this?
+        App.app.interface.enter_foreground()
         
     @objc_method
     def application_didFinishLaunchingWithOptions_(
