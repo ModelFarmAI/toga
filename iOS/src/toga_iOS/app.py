@@ -9,6 +9,8 @@ from toga_iOS.window import Window
 
 class MainWindow(Window):
     _is_main_window = True
+    
+
 
 
 class PythonAppDelegate(UIResponder):
@@ -23,12 +25,12 @@ class PythonAppDelegate(UIResponder):
     @objc_method
     def applicationDidEnterBackground_(self, application) -> None:
         print("App entered background.")
-        App.app.interface.cleanup(App.app.interface)
-
+        App.app.interface.enter_background()
+        
     @objc_method
     def applicationWillEnterForeground_(self, application) -> None:
         print("App about to enter foreground.")
-        App.app.interface.startup_server()
+        App.app.interface.enter_foreground()
         
     @objc_method
     def application_didFinishLaunchingWithOptions_(
@@ -97,3 +99,4 @@ class App:
 
     def show_cursor(self):
         pass
+        
