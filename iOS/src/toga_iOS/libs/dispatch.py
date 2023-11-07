@@ -14,8 +14,7 @@ from ctypes import (
     util,
 )
 
-from rubicon.objc import ObjCInstance
-from rubicon.objc.runtime import objc_id
+from rubicon.objc import ObjCInstance, objc_id
 
 ######################################################################
 libdispatch = cdll.LoadLibrary(util.find_library("libdispatch"))
