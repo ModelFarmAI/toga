@@ -477,9 +477,9 @@ UIKeyboardDidHideNotification = objc_const(uikit, "UIKeyboardDidHideNotification
 
 UIKeyboardFrameEndUserInfoKey = objc_const(uikit, "UIKeyboardFrameEndUserInfoKey")
 
-UIKeyboardWillChangeFrameNotification = objc_const(
-    uikit, "UIKeyboardWillChangeFrameNotification"
-)
-UIKeyboardDidChangeFrameNotification = objc_const(
-    uikit, "UIKeyboardDidChangeFrameNotification"
-)
+UIKeyboardWillChangeFrameNotification = objc_const(uikit, "UIKeyboardWillChangeFrameNotification")
+UIKeyboardDidChangeFrameNotification = objc_const(uikit, "UIKeyboardDidChangeFrameNotification")
+
+######################################################################
+# UIStoryboard.h
+UIStoryboard = ObjCClass("UIStoryboard")
