@@ -108,6 +108,7 @@ class WebView(Widget):
         conf = WKWebViewConfiguration.alloc().init()
         conf.allowsInlineMediaPlayback = True
         conf.suppressesIncrementalRendering = True
+        conf.mediaTypesRequiringUserActionForPlayback = 0
         self.native = TogaWebView.alloc().initWithFrame(UIScreen.mainScreen.bounds, configuration=conf)
         self.native.interface = self.interface
         self.native.impl = self
