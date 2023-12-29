@@ -1,5 +1,6 @@
 import json
 import re
+import time
 
 from rubicon.objc import NSInteger, ObjCBlock, objc_method, objc_property, py_from_ns
 from rubicon.objc.runtime import c_void_p, objc_id
@@ -16,6 +17,7 @@ from toga_iOS.libs import (
     CGRect,
     UIColor,
 )
+from toga_iOS.app import App
 from toga_iOS.widgets.base import Widget
 
 
@@ -37,40 +39,49 @@ def js_completion_handler(future, on_result=None):
 
 
 def parse_color_rule(color_rule_str, default_color):
-    color_matches = re.match(r"rgb\((\d+),\s*(\d+),\s*(\d+)\)",color_rule_str)
+    color_matches = re.match(r"rgb\((\d+),\s*(\d+),\s*(\d+)\)", color_rule_str)
     if color_matches:
-        color = (int(color_matches[1]),int(color_matches[2]),int(color_matches[3]),255)
+        color = (int(color_matches[1]), int(color_matches[2]), int(color_matches[3]), 255)
     else:
-        color_matches = re.match(r"rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)",color_rule_str)
+        color_matches = re.match(r"rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)", color_rule_str)
         if color_matches:
-            color = (int(color_matches[1]),int(color_matches[2]),int(color_matches[3]),int(color_matches[4]))
+            color = (int(color_matches[1]), int(color_matches[2]), int(color_matches[3]), int(color_matches[4]))
         else:
             color = default_color
-    #unset backgrounds are (0, 0, 0, 0)
+    # unset backgrounds are (0, 0, 0, 0)
     if color == (0, 0, 0, 0):
         color = default_color
     return color
-    
+
 
 class TogaWebView(WKWebView):
     interface = objc_property(object, weak=True)
     impl = objc_property(object, weak=True)
-    
+
     @objc_method
     def userContentController_didReceiveScriptMessage_(self, userContentController, message) -> None:
+        if App.app.interface.first_load:
+            App.app.interface.finish_launch()
         colors = json.loads(str(message.body))
         top_colors = parse_color_rule(colors["top_background"], self.interface.bg_color)
-        topColor = UIColor.colorWithRed(top_colors[0]/255.0, green=top_colors[1]/255.0, blue=top_colors[2]/255.0, alpha=top_colors[3]/255.0)
+        topColor = UIColor.colorWithRed(
+            top_colors[0] / 255.0, green=top_colors[1] / 255.0, blue=top_colors[2] / 255.0, alpha=top_colors[3] / 255.0
+        )
         self.impl.topBackgroundView.backgroundColor = topColor
         self.superview().insertSubview(self.impl.topBackgroundView, belowSubview=self)
-        
+
         bottom_colors = parse_color_rule(colors["bottom_background"], self.interface.bg_color)
-        bottomColor = UIColor.colorWithRed(bottom_colors[0]/255.0, green=bottom_colors[1]/255.0, blue=bottom_colors[2]/255.0, alpha=bottom_colors[3]/255.0)
+        bottomColor = UIColor.colorWithRed(
+            bottom_colors[0] / 255.0,
+            green=bottom_colors[1] / 255.0,
+            blue=bottom_colors[2] / 255.0,
+            alpha=bottom_colors[3] / 255.0,
+        )
         self.impl.bottomBackgroundView.backgroundColor = bottomColor
         self.superview().insertSubview(self.impl.bottomBackgroundView, belowSubview=self)
 
     @objc_method
-    def webView_didFinishNavigation_(self, navigation) -> None:
+    def webView_didFinishNavigation_(self, webview, navigation) -> None:
         self.interface.on_webview_load(self.interface)
 
         if self.impl.loaded_future:
@@ -97,6 +108,7 @@ class WebView(Widget):
         conf = WKWebViewConfiguration.alloc().init()
         conf.allowsInlineMediaPlayback = True
         conf.suppressesIncrementalRendering = True
+        conf.mediaTypesRequiringUserActionForPlayback = 0
         self.native = TogaWebView.alloc().initWithFrame(UIScreen.mainScreen.bounds, configuration=conf)
         self.native.interface = self.interface
         self.native.impl = self
@@ -107,19 +119,18 @@ class WebView(Widget):
         self.native.navigationDelegate = self.native
 
         self.native.UIDelegate = self.native
-        
+
         self.native.allowsLinkPreview = False
-        self.native.scrollView.setContentInsetAdjustmentBehavior(2);
+        self.native.scrollView.setContentInsetAdjustmentBehavior(2)
         self.native.scrollView.backgroundColor = UIColor.clearColor
         self.native.configuration.userContentController.addScriptMessageHandler(self.native, name="finished_loading")
-        
-        screenWidth = min(UIScreen.mainScreen.bounds.size.height,UIScreen.mainScreen.bounds.size.width)
-        screenHeight = max(UIScreen.mainScreen.bounds.size.height,UIScreen.mainScreen.bounds.size.width)
-        topRect = CGRect((0, 0), (screenHeight, 0.69*screenWidth))
-        self.topBackgroundView = UIView.alloc().initWithFrame(topRect)
-        bottomRect = CGRect((0, 0.69*screenWidth), (screenHeight, screenHeight-0.69*screenWidth))
-        self.bottomBackgroundView = UIView.alloc().initWithFrame(bottomRect)
 
+        screenWidth = min(UIScreen.mainScreen.bounds.size.height, UIScreen.mainScreen.bounds.size.width)
+        screenHeight = max(UIScreen.mainScreen.bounds.size.height, UIScreen.mainScreen.bounds.size.width)
+        topRect = CGRect((0, 0), (screenHeight, 0.69 * screenWidth))
+        self.topBackgroundView = UIView.alloc().initWithFrame(topRect)
+        bottomRect = CGRect((0, 0.69 * screenWidth), (screenHeight, screenHeight - 0.69 * screenWidth))
+        self.bottomBackgroundView = UIView.alloc().initWithFrame(bottomRect)
 
         self.loaded_future = None
 
