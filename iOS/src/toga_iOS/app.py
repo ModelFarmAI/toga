@@ -52,7 +52,11 @@ class PythonAppDelegate(UIResponder):
         """This callback is invoked when rotating the device from landscape to portrait
         and vice versa."""
         App.app.interface.main_window.content.refresh()
-
+        
+    @objc_method
+    def application_continueUserActivity_restorationHandler_(self, application, userActivity, restorationHandler):
+        if userActivity.activityType == "NSUserActivityTypeBrowsingWeb":
+            App.app.interface.handle_deep_link(str(userActivity.webpageURL))
 
 class App:
     def __init__(self, interface):
