@@ -80,13 +80,13 @@ class TogaWebView(WKWebView):
         self.impl.bottomBackgroundView.backgroundColor = bottomColor
         self.superview().insertSubview(self.impl.bottomBackgroundView, belowSubview=self)
         
-    @objc_method
-    def webView_didStartProvisionalNavigation_(self, webView, navigation) -> None:
-        self.impl.url = str(self.URL)
+    # @objc_method
+    # def webView_didStartProvisionalNavigation_(self, webView, navigation) -> None:
+    #     self.impl.url = str(self.URL)
         
-    @objc_method
-    def webView_didReceiveServerRedirectForProvisionalNavigation_(self, webView, navigation) -> None:
-        self.impl.url = str(self.URL)
+    # @objc_method
+    # def webView_didReceiveServerRedirectForProvisionalNavigation_(self, webView, navigation) -> None:
+    #     self.impl.url = str(self.URL)
 
 
     @objc_method
@@ -140,7 +140,6 @@ class WebView(Widget):
         bottomRect = CGRect((0, 0.69 * screenWidth), (screenHeight, screenHeight - 0.69 * screenWidth))
         self.bottomBackgroundView = UIView.alloc().initWithFrame(bottomRect)
 
-        self.url = None
         self.loaded_future = None
 
         self.web_view_error_flag = False
@@ -149,7 +148,8 @@ class WebView(Widget):
         self.add_constraints()
 
     def get_url(self):
-        return None if self.url == "about:blank" else self.url
+        url = str(self.native.URL)
+        return None if url == "about:blank" else url
 
     def set_url(self, value, future=None):
         if value:
