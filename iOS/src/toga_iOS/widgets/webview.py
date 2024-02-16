@@ -1,23 +1,22 @@
 import json
 import re
-import time
 
 from rubicon.objc import NSInteger, ObjCBlock, objc_method, objc_property, py_from_ns
 from rubicon.objc.runtime import c_void_p, objc_id
 from travertino.size import at_least
 
 from toga.widgets.webview import JavaScriptResult
+from toga_iOS.app import App
 from toga_iOS.libs import (
     NSURL,
+    CGRect,
     NSURLRequest,
+    UIColor,
     UIScreen,
     UIView,
     WKWebView,
     WKWebViewConfiguration,
-    CGRect,
-    UIColor,
 )
-from toga_iOS.app import App
 from toga_iOS.widgets.base import Widget
 
 
@@ -79,15 +78,14 @@ class TogaWebView(WKWebView):
         )
         self.impl.bottomBackgroundView.backgroundColor = bottomColor
         self.superview().insertSubview(self.impl.bottomBackgroundView, belowSubview=self)
-        
+
     # @objc_method
     # def webView_didStartProvisionalNavigation_(self, webView, navigation) -> None:
     #     self.impl.url = str(self.URL)
-        
+
     # @objc_method
     # def webView_didReceiveServerRedirectForProvisionalNavigation_(self, webView, navigation) -> None:
     #     self.impl.url = str(self.URL)
-
 
     @objc_method
     def webView_didFinishNavigation_(self, webview, navigation) -> None:
