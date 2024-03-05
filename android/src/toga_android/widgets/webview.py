@@ -40,6 +40,7 @@ class WebView(Widget):
         self.native.setWebViewClient(WebViewClient())
 
         self.settings = self.native.getSettings()
+        self.settings.setMediaPlaybackRequiresUserGesture(False)
         self.default_user_agent = self.settings.getUserAgentString()
         self.settings.setJavaScriptEnabled(True)
 
