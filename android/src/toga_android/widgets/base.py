@@ -44,7 +44,7 @@ class Widget(ABC, Scalable):
     # these widgets disable programmatic focus entirely by setting focusable = False.
     focusable = True
 
-    def __init__(self, interface):
+    def __init__(self, interface, web_view_client_class=None):
         super().__init__()
         self.interface = interface
         self.interface._impl = self
@@ -52,7 +52,8 @@ class Widget(ABC, Scalable):
         self.native = None
         self._native_activity = MainActivity.singletonThis
         self.init_scale(self._native_activity)
-        self.create()
+        self.url = "about:blank"
+        self.create(web_view_client_class=web_view_client_class)
 
         # Some widgets, e.g. TextView, may throw an exception if we call measure()
         # before setting LayoutParams.
@@ -68,7 +69,7 @@ class Widget(ABC, Scalable):
         self.interface.style.reapply()
 
     @abstractmethod
-    def create(self):
+    def create(self, web_view_client_class=None):
         ...
 
     def set_app(self, app):
