@@ -33,12 +33,17 @@ class ReceiveString(dynamic_proxy(ValueCallback)):
 
 
 class WebView(Widget):
-    def create(self, web_view_client_class=None):
+    def __init__(self, interface, web_view_client_class=None):
+        self.web_view_client_class = web_view_client_class
+        super().__init__(interface)
+        
+
+    def create(self):
         self.native = A_WebView(self._native_activity)
         # Set a WebViewClient so that new links open in this activity,
         # rather than triggering the phone's web browser.
-        if web_view_client_class:
-            self.native.setWebViewClient(web_view_client_class(self))
+        if self.web_view_client_class:
+            self.native.setWebViewClient(self.web_view_client_class(self))
         else:
             self.native.setWebViewClient(WebViewClient())
 
@@ -46,6 +51,7 @@ class WebView(Widget):
         self.settings.setMediaPlaybackRequiresUserGesture(False)
         self.default_user_agent = self.settings.getUserAgentString()
         self.settings.setJavaScriptEnabled(True)
+        self.url = "about:blank"
 
     def get_url(self):
         # url = self.native.getUrl()
