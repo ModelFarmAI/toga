@@ -33,6 +33,12 @@ class TogaApp(dynamic_proxy(IPythonApp)):
 
     def onCreate(self):
         print("Toga app: onCreate")
+        # Intent intent = getIntent();
+        # String action = intent.getAction();
+        # Uri data = intent.getData();
+        # Check the action in this if statement
+        #if userActivity.activityType == "NSUserActivityTypeBrowsingWeb":
+            App.app.interface.handle_deep_link(str(data))
 
     def onStart(self):
         print("Toga app: onStart")
@@ -171,6 +177,8 @@ class App:
         self.interface = interface
         self.interface._impl = self
         self._listener = None
+
+        App.app = self
 
         self.loop = events.AndroidEventLoop()
 
