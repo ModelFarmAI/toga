@@ -16,9 +16,11 @@ class WebView(Widget):
         self,
         id=None,
         style=None,
+        bg_color: str | None = None,
         url: str | None = None,
         user_agent: str | None = None,
         on_webview_load: callable | None = None,
+        web_view_client_class: callable | None = None,
     ):
         """Create a new WebView widget.
 
@@ -34,13 +36,16 @@ class WebView(Widget):
         """
 
         super().__init__(id=id, style=style)
-
-        self._impl = self.factory.WebView(interface=self)
+        if web_view_client_class:
+            self._impl = self.factory.WebView(interface=self, web_view_client_class=web_view_client_class)
+        else:
+             self._impl = self.factory.WebView(interface=self)
         self.user_agent = user_agent
 
         # Set the load handler before loading the first URL.
         self.on_webview_load = on_webview_load
         self.url = url
+        self.bg_color = bg_color
 
     def _set_url(self, url, future):
         # Utility method for validating and setting the URL with a future.

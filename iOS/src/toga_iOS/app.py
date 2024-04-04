@@ -9,6 +9,8 @@ from toga_iOS.window import Window
 
 class MainWindow(Window):
     _is_main_window = True
+    
+
 
 
 class PythonAppDelegate(UIResponder):
@@ -23,11 +25,13 @@ class PythonAppDelegate(UIResponder):
     @objc_method
     def applicationDidEnterBackground_(self, application) -> None:
         print("App entered background.")
-
+        App.app.interface.enter_background()
+        
     @objc_method
     def applicationWillEnterForeground_(self, application) -> None:
         print("App about to enter foreground.")
-
+        App.app.interface.enter_foreground()
+        
     @objc_method
     def application_didFinishLaunchingWithOptions_(
         self, application, launchOptions
@@ -48,7 +52,11 @@ class PythonAppDelegate(UIResponder):
         """This callback is invoked when rotating the device from landscape to portrait
         and vice versa."""
         App.app.interface.main_window.content.refresh()
-
+        
+    @objc_method
+    def application_continueUserActivity_restorationHandler_(self, application, userActivity, restorationHandler):
+        if userActivity.activityType == "NSUserActivityTypeBrowsingWeb":
+            App.app.interface.handle_deep_link(str(userActivity.webpageURL))
 
 class App:
     def __init__(self, interface):
@@ -95,3 +103,4 @@ class App:
 
     def show_cursor(self):
         pass
+        

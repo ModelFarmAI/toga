@@ -6,7 +6,7 @@ from org.beeware.android import IPythonApp, MainActivity
 import toga
 from android.graphics.drawable import Drawable
 from android.media import RingtoneManager
-from android.view import Menu, MenuItem
+from android.view import Menu, MenuItem, View
 from toga.command import Group
 
 from .libs import events
@@ -29,6 +29,11 @@ class TogaApp(dynamic_proxy(IPythonApp)):
         self._impl = app
         MainActivity.setPythonApp(self)
         self.native = MainActivity.singletonThis
+        decorView = self.native.getWindow().getDecorView()
+        uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN
+        decorView.setSystemUiVisibility(uiOptions)
+        # actionBar = self.native.getSupportActionBar()
+        # actionBar.hide()
         print("Python app launched & stored in Android Activity class")
 
     def onCreate(self):
