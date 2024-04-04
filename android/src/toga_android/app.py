@@ -37,7 +37,13 @@ class TogaApp(dynamic_proxy(IPythonApp)):
         print("Python app launched & stored in Android Activity class")
 
     def onCreate(self):
+        intent = self.native.getIntent()
+        action = intent.getAction()
+        data = intent.getData()
         print("Toga app: onCreate")
+        # Check the action in this if statement
+        if str(action) == "android.intent.action.VIEW":
+            App.app.interface.handle_deep_link(str(data))
 
     def onStart(self):
         print("Toga app: onStart")
@@ -176,6 +182,8 @@ class App:
         self.interface = interface
         self.interface._impl = self
         self._listener = None
+
+        App.app = self
 
         self.loop = events.AndroidEventLoop()
 
