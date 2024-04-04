@@ -40,15 +40,10 @@ class TogaApp(dynamic_proxy(IPythonApp)):
         intent = self.native.getIntent()
         action = intent.getAction()
         data = intent.getData()
-        print("data", data)
-        print("action", action)
         print("Toga app: onCreate")
-        # Intent intent = getIntent();
-        # String action = intent.getAction();
-        # Uri data = intent.getData();
         # Check the action in this if statement
-        # if action == "NSUserActivityTypeBrowsingWeb":
-        #     App.app.interface.handle_deep_link(str(data))
+        if str(action) == "android.intent.action.VIEW":
+            App.app.interface.handle_deep_link(str(data))
 
     def onStart(self):
         print("Toga app: onStart")
