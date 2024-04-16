@@ -29,9 +29,9 @@ class TogaApp(dynamic_proxy(IPythonApp)):
         self._impl = app
         MainActivity.setPythonApp(self)
         self.native = MainActivity.singletonThis
-        decorView = self.native.getWindow().getDecorView()
-        uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN
-        decorView.setSystemUiVisibility(uiOptions)
+        # decorView = self.native.getWindow().getDecorView()
+        # uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN
+        # decorView.setSystemUiVisibility(uiOptions)
         # actionBar = self.native.getSupportActionBar()
         # actionBar.hide()
         print("Python app launched & stored in Android Activity class")
