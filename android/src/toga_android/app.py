@@ -53,6 +53,7 @@ class TogaApp(dynamic_proxy(IPythonApp)):
 
     def onPause(self):
         print("Toga app: onPause")
+        App.app.interface.enter_background()
 
     def onStop(self):
         print("Toga app: onStop")
